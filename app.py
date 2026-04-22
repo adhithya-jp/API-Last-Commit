@@ -16,7 +16,7 @@ def solve():
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[
-            {"role": "system", "content": "Answer questions with only YES or NO in uppercase. Nothing else."},
+            {"role": "system", "content": "Answer with only the final answer value. No explanation, no units, no extra text. Just the number or word."},
             {"role": "user", "content": query}
         ]
     )
