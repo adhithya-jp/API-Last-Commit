@@ -41,8 +41,9 @@ def solve():
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
+        temperature=0,
         messages=[
-            {"role": "system", "content": "You are a precise answer engine. Return only the final answer with no explanation, no extra words, no punctuation unless it is part of the answer. For numbers return just the number. For yes/no return YES or NO in caps. For text extraction return just the extracted text."},
+            {"role": "system", "content": "Return ONLY the answer. Single word or number. No sentences. No explanation. No punctuation. Examples: '10' not 'The answer is 10'. 'YES' not 'Yes, it is'. '12 March 2024' not 'The date is 12 March 2024'."},
             {"role": "user", "content": query}
         ]
     )
