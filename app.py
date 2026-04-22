@@ -22,7 +22,7 @@ def try_solve(query):
         return str(max(nums)) if nums else None
     if "min" in q or "smallest" in q:
         return str(min(nums)) if nums else None
-    if "sum" in q or "total" in q:
+    if "total" in q:
         return str(sum(nums)) if nums else None
 
     return None
