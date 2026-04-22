@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from groq import Groq
 import os
 import re
+import math
 
 app = Flask(__name__)
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -18,19 +19,79 @@ def strip_to_answer(text):
 def solve_math(query):
     q = query.lower()
 
-    # Modular arithmetic: X^Y mod Z
-    m = re.search(r'(\d+)\s*[\^]\s*(\d+)\s*mod\s*10\^(\d+)', query, re.IGNORECASE)
+    # X^Y mod 10^Z  or  X^Y mod Z
+    m = re.search(r'(\d+)\s*\^\s*(\d+)\s*mod\s*10\^(\d+)', query, re.IGNORECASE)
     if m:
         base, exp, digits = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        result = pow(base, exp, 10**digits)
-        return str(result)
+        return str(pow(base, exp, 10**digits))
+
+    m = re.search(r'(\d+)\s*\^\s*(\d+)\s*mod\s*(\d+)', query, re.IGNORECASE)
+    if m:
+        base, exp, mod = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        return str(pow(base, exp, mod))
 
     # Last N digits of X^Y
-    m = re.search(r'last\s*(\d+)\s*digits?\s*of\s*(\d+)\s*[\^]\s*(\d+)', q)
+    m = re.search(r'last\s*(\d+)\s*digits?\s*of\s*(\d+)\s*\^\s*(\d+)', q)
     if m:
         digits, base, exp = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        result = pow(base, exp, 10**digits)
-        return str(result)
+        return str(pow(base, exp, 10**digits))
+
+    # Factorial
+    m = re.search(r'(\d+)\s*!|factorial\s*(?:of\s*)?(\d+)', q)
+    if m:
+        n = int(m.group(1) or m.group(2))
+        if n <= 20:
+            return str(math.factorial(n))
+
+    # GCD
+    m = re.search(r'gcd\s*(?:of\s*)?(\d+)\s*(?:and|,)\s*(\d+)', q)
+    if m:
+        return str(math.gcd(int(m.group(1)), int(m.group(2))))
+
+    # LCM
+    m = re.search(r'lcm\s*(?:of\s*)?(\d+)\s*(?:and|,)\s*(\d+)', q)
+    if m:
+        a, b = int(m.group(1)), int(m.group(2))
+        return str(abs(a * b) // math.gcd(a, b))
+
+    # Is X prime
+    m = re.search(r'is\s*(\d+)\s*(?:a\s*)?prime', q)
+    if m:
+        n = int(m.group(1))
+        if n < 2: return "NO"
+        for i in range(2, int(n**0.5)+1):
+            if n % i == 0: return "NO"
+        return "YES"
+
+    # Square root
+    m = re.search(r'(?:square root|sqrt)\s*(?:of\s*)?(\d+)', q)
+    if m:
+        n = int(m.group(1))
+        root = math.isqrt(n)
+        return str(root) if root*root == n else str(round(math.sqrt(n), 4))
+
+    # Fibonacci Nth term
+    m = re.search(r'(\d+)(?:st|nd|rd|th)\s*fibonacci|fibonacci.*?(\d+)', q)
+    if m:
+        n = int(m.group(1) or m.group(2))
+        if n <= 100:
+            a, b = 0, 1
+            for _ in range(n-1): a, b = b, a+b
+            return str(a if n == 1 else b)
+
+    # nCr combinations
+    m = re.search(r'c\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)|(\d+)\s*choose\s*(\d+)', q)
+    if m:
+        n = int(m.group(1) or m.group(3))
+        r = int(m.group(2) or m.group(4))
+        return str(math.comb(n, r))
+
+    # nPr permutations
+    m = re.search(r'p\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)|(\d+)\s*permute\s*(\d+)', q)
+    if m:
+        n = int(m.group(1) or m.group(3))
+        r = int(m.group(2) or m.group(4))
+        return str(math.perm(n, r))
 
     return None
 
@@ -81,7 +142,6 @@ def two_step_call(query):
         ]
     )
     chain = reasoning.choices[0].message.content.strip()
-
     extraction = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         temperature=0,
@@ -105,7 +165,7 @@ def solve():
     data  = request.get_json(silent=True) or {}
     query = str(data.get("query", ""))
 
-    # 1. Deterministic math solver (exact, instant)
+    # 1. Deterministic math (exact, instant)
     result = solve_math(query)
     if result:
         return jsonify({"output": result}), 200
