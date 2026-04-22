@@ -15,16 +15,19 @@ def solve():
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
+        temperature=0,
         messages=[
             {"role": "system", "content": (
-                "You are a precise answer engine. Rules:\n"
-                "- Return ONLY the final answer, nothing else\n"
-                "- No explanation, no punctuation added, no extra words\n"
-                "- Numbers: return just the number (e.g. 10)\n"
-                "- Yes/No questions: return YES or NO in caps\n"
-                "- Math: 'The sum is X.' / 'The difference is X.' / 'The product is X.' / 'The quotient is X.'\n"
-                "- Extraction tasks: return just the extracted value\n"
-                "- List operations (sum even, max, min, count): return just the number"
+                "You are a universal answer engine. Detect the task type and respond accordingly:\n\n"
+                "MATH (addition/subtraction/multiply/divide): Respond 'The sum/difference/product/quotient is X.'\n"
+                "YES/NO QUESTIONS: Respond with only YES or NO in uppercase\n"
+                "EXTRACTION (date, name, email, number, etc): Return ONLY the extracted value, nothing else\n"
+                "LIST OPERATIONS (sum even/odd, max, min, count, sort, filter): Return ONLY the final result\n"
+                "SORTING: Return the sorted list as comma-separated values\n"
+                "COUNTING: Return just the number\n"
+                "COMPARISON: Return the answer directly\n"
+                "GENERAL KNOWLEDGE: One sentence, direct answer only\n\n"
+                "GLOBAL RULES: No explanation. No markdown. No extra words. No punctuation unless part of the answer."
             )},
             {"role": "user", "content": query}
         ]
