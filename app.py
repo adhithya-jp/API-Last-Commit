@@ -15,6 +15,69 @@ def strip_to_answer(text):
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     return lines[-1] if lines else text
 
+def needs_reasoning(query):
+    q = query.lower()
+    return any(k in q for k in [
+        "rule 1", "rule 2", "apply rule", "if even", "if odd",
+        "if result", "divisible by", "apply the following",
+        "transaction log", "filter", "extract the first",
+        "pipe-separated", "verified", "unverified", "disputed"
+    ])
+
+def single_call(query):
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": (
+                "You are a precise answer engine. Return ONLY the final answer.\n\n"
+                "MATH/KNOWLEDGE: return just the number or fact\n"
+                "YES/NO: YES or NO in uppercase\n"
+                "EXTRACTION: only the extracted value\n"
+                "LIST OPS: only the final number or list\n"
+                "COMPARISON: only the name, original capitalisation\n"
+                "FORMATTING: follow exact format specified\n\n"
+                "No explanation. No markdown. No extra words. One line only."
+            )},
+            {"role": "user", "content": query}
+        ]
+    )
+    return response.choices[0].message.content.strip()
+
+def two_step_call(query):
+    reasoning = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": (
+                "You are a precise reasoning engine. Work through the problem step by step.\n"
+                "For rule execution: apply every rule in strict order, use each result as input to next.\n"
+                "For data filtering: parse carefully, apply ALL conditions, return FIRST match unless told otherwise.\n"
+                "For transaction results use: '[Name] paid the amount of $[amount].'\n"
+                "For label-priority: always trust [VERIFIED] over [UNVERIFIED] or [DISPUTED].\n"
+                "For formatting: follow the exact format specified.\n"
+                "Show all working clearly."
+            )},
+            {"role": "user", "content": query}
+        ]
+    )
+    chain = reasoning.choices[0].message.content.strip()
+
+    extraction = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": (
+                "Extract the final answer from the reasoning.\n"
+                "Return ONLY the final answer. No explanation. No markdown. Just the answer."
+            )},
+            {"role": "user",      "content": query},
+            {"role": "assistant", "content": chain},
+            {"role": "user",      "content": "Final answer only:"}
+        ]
+    )
+    return extraction.choices[0].message.content.strip()
+
 @app.route("/", methods=["GET", "POST"])
 def solve():
     if request.method == "GET":
@@ -23,45 +86,11 @@ def solve():
     data  = request.get_json(silent=True) or {}
     query = str(data.get("query", ""))
 
-    # Step 1: full reasoning
-    reasoning = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        messages=[
-            {"role": "system", "content": (
-                "You are a precise reasoning engine. Work through the problem step by step.\n"
-                "For rule execution: apply every rule in strict order, use each result as input to next.\n"
-                "For data filtering/extraction tasks (transaction logs, records, lists):\n"
-                "  - Parse each entry carefully\n"
-                "  - Apply ALL filter conditions\n"
-                "  - Return the FIRST match unless told otherwise\n"
-                "  - Use this sentence format for transaction results: '[Name] paid the amount of $[amount].'\n"
-                "For label-priority tasks: always trust [VERIFIED] over [UNVERIFIED] or [DISPUTED].\n"
-                "For formatting tasks: follow the exact format specified in the query.\n"
-                "Show all working clearly."
-            )},
-            {"role": "user", "content": query}
-        ]
-    )
-    chain = reasoning.choices[0].message.content.strip()
+    if needs_reasoning(query):
+        raw = two_step_call(query)
+    else:
+        raw = single_call(query)
 
-    # Step 2: extract final answer only
-    extraction = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        messages=[
-            {"role": "system", "content": (
-                "Extract the final answer from the reasoning provided.\n"
-                "Return ONLY the final answer — one value, one sentence, or one formatted result.\n"
-                "No explanation. No extra words. No markdown. Just the answer."
-            )},
-            {"role": "user",      "content": query},
-            {"role": "assistant", "content": chain},
-            {"role": "user",      "content": "Final answer only:"}
-        ]
-    )
-
-    raw    = extraction.choices[0].message.content.strip()
     answer = strip_to_answer(raw)
     return jsonify({"output": answer}), 200
 
