@@ -7,14 +7,11 @@ app = Flask(__name__)
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def strip_to_answer(text):
-    # Remove common filler phrases the LLM adds
     text = re.sub(
         r'^(the final (answer|result|output) is[:\s]*|therefore[,\s]*|so[,\s]*|output[:\s]*|answer[:\s]*)',
         '', text.strip(), flags=re.IGNORECASE
     ).strip()
-    # Remove surrounding quotes
-    text = text.strip('"\'""')
-    # If multiple lines, take last non-empty line
+    text = text.strip('"\'"\u201c\u201d')
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     return lines[-1] if lines else text
 
@@ -32,8 +29,13 @@ def solve():
         temperature=0,
         messages=[
             {"role": "system", "content": (
-                "Work through this problem step by step. "
-                "Execute every rule in strict order. "
+                "You are a precise reasoning engine. Work through the problem step by step.\n"
+                "For rule execution: apply every rule in strict order, use each result as input to next.\n"
+                "For data filtering/extraction tasks (transaction logs, records, lists):\n"
+                "  - Parse each entry carefully\n"
+                "  - Apply ALL filter conditions\n"
+                "  - Return the FIRST match unless told otherwise\n"
+                "  - Use this sentence format for transaction results: '[Name] paid the amount of $[amount].'\n"
                 "Show all working clearly."
             )},
             {"role": "user", "content": query}
@@ -47,17 +49,17 @@ def solve():
         temperature=0,
         messages=[
             {"role": "system", "content": (
-                "You extract the final answer from reasoning. "
-                "Return ONLY the final value — one word or one number. "
-                "No sentences. No explanation. No punctuation. Just the value."
+                "Extract the final answer from the reasoning provided.\n"
+                "Return ONLY the final answer — one value, one sentence, or one formatted result.\n"
+                "No explanation. No extra words. No markdown. Just the answer."
             )},
-            {"role": "user", "content": query},
+            {"role": "user",      "content": query},
             {"role": "assistant", "content": chain},
-            {"role": "user", "content": "Final answer only. One word or number:"}
+            {"role": "user",      "content": "Final answer only:"}
         ]
     )
 
-    raw = extraction.choices[0].message.content.strip()
+    raw    = extraction.choices[0].message.content.strip()
     answer = strip_to_answer(raw)
     return jsonify({"output": answer}), 200
 
