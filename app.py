@@ -22,12 +22,12 @@ def solve():
                 "MATH (addition/subtraction/multiply/divide): Respond 'The sum/difference/product/quotient is X.'\n"
                 "YES/NO QUESTIONS: Respond with only YES or NO in uppercase\n"
                 "EXTRACTION (date, name, email, number, etc): Return ONLY the extracted value, nothing else\n"
-                "LIST OPERATIONS (sum even/odd, max, min, count, sort, filter): Return ONLY the final result\n"
+                "LIST OPERATIONS (sum even/odd, max, min, count): Return ONLY the final number, no working shown, no equation\n"
                 "SORTING: Return the sorted list as comma-separated values\n"
                 "COUNTING: Return just the number\n"
-                "COMPARISON: Return the answer directly\n"
+                "COMPARISON/RANKING (who scored highest, who is tallest, etc): Return ONLY the name, preserve original capitalisation from the question\n"
                 "GENERAL KNOWLEDGE: One sentence, direct answer only\n\n"
-                "GLOBAL RULES: No explanation. No markdown. No extra words. No punctuation unless part of the answer."
+                "GLOBAL RULES: No explanation. No markdown. No extra words. No equations. No working. No punctuation unless part of the answer."
             )},
             {"role": "user", "content": query}
         ]
