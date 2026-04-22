@@ -43,7 +43,7 @@ def solve():
         model="llama-3.1-8b-instant",
         temperature=0,
         messages=[
-            {"role": "system", "content": "Return ONLY the answer. Single word or number. No sentences. No explanation. No punctuation. Examples: '10' not 'The answer is 10'. 'YES' not 'Yes, it is'. '12 March 2024' not 'The date is 12 March 2024'."},
+            {"role": "system", "content": "Return ONLY the answer. No explanation. For addition questions use format 'The sum is X.' For subtraction use 'The difference is X.' For multiplication use 'The product is X.' For division use 'The quotient is X.' For yes/no questions return YES or NO in caps. For extraction return just the extracted value. For number operations like sum/count/max/min return just the number."},
             {"role": "user", "content": query}
         ]
     )
