@@ -14,7 +14,7 @@ def solve():
         data = request.get_json(silent=True) or {}
         query = str(data.get("query", ""))
 
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(
             f"Answer this question in one short sentence only. No extra text, no markdown, no asterisks:\n{query}"
         )
