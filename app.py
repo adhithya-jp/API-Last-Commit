@@ -7,7 +7,7 @@ app = Flask(__name__)
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def normalize(q):
-    return q.lower().replace('→', '->').replace('\u2192', '->').replace('"', '"').replace('"', '"')
+    return q.lower().replace('→', '->').replace('\u2192', '->').replace('\u201c', '"').replace('\u201d', '"')
 
 def extract_input_number(q):
     m = re.search(r'input number[s]?\s+(\d+)', q, re.IGNORECASE)
@@ -20,7 +20,6 @@ def apply_rules(query):
 
     q = normalize(query)
 
-    # ── Rule 1: even/odd ──────────────────────────────────────────
     if "if even" not in q or "if odd" not in q:
         return None
 
@@ -37,24 +36,15 @@ def apply_rules(query):
         if op == 'multiply': return val * operand
         return val
 
-    if n % 2 == 0:
-        result = apply_op(n, even_m.group(1), even_m.group(2))
-    else:
-        result = apply_op(n, odd_m.group(1), odd_m.group(2))
+    result = apply_op(n, even_m.group(1), even_m.group(2)) if n % 2 == 0 else apply_op(n, odd_m.group(1), odd_m.group(2))
 
-    # ── Rule 2: threshold ─────────────────────────────────────────
-    r2 = re.search(
-        r'result\s*>\s*(\d+)\s*->\s*subtract\s*(\d+).*?otherwise\s*->\s*add\s*(\d+)', q, re.DOTALL)
-    if not r2:
-        r2 = re.search(
-            r'if result\s*>\s*(\d+)[^.]*subtract\s*(\d+).*?otherwise[^.]*add\s*(\d+)', q, re.DOTALL)
+    r2 = re.search(r'result\s*>\s*(\d+)\s*->\s*subtract\s*(\d+).*?otherwise\s*->\s*add\s*(\d+)', q, re.DOTALL)
     if r2:
         t, s, a = int(r2.group(1)), int(r2.group(2)), int(r2.group(3))
         result = result - s if result > t else result + a
     else:
         return None
 
-    # ── Rule 3: divisibility → word or number ────────────────────
     r3 = re.search(r'divisible by\s*(\d+)\s*->\s*output\s*"?([a-zA-Z]+)"?', q)
     if r3:
         divisor = int(r3.group(1))
@@ -62,6 +52,10 @@ def apply_rules(query):
         return word if result % divisor == 0 else str(result)
 
     return str(result)
+
+def is_rule_query(query):
+    q = query.lower()
+    return "rule 1" in q or "rule 2" in q or "apply rule" in q or ("if even" in q and "if odd" in q)
 
 @app.route("/", methods=["GET", "POST"])
 def solve():
@@ -71,10 +65,28 @@ def solve():
     data  = request.get_json(silent=True) or {}
     query = str(data.get("query", ""))
 
+    # Try deterministic rule executor first
     result = apply_rules(query)
     if result:
         return jsonify({"output": result}), 200
 
+    # For rule-based queries, use dedicated reasoning prompt
+    if is_rule_query(query):
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            temperature=0,
+            messages=[
+                {"role": "system", "content": (
+                    "You are a rule execution engine. You will be given a number and a set of rules.\n"
+                    "Execute every rule in order, step by step, using the result of each rule as input to the next.\n"
+                    "Output ONLY the final result — a single word or number. No explanation, no working, no steps shown."
+                )},
+                {"role": "user", "content": query}
+            ]
+        )
+        return jsonify({"output": response.choices[0].message.content.strip()}), 200
+
+    # General fallback
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         temperature=0,
