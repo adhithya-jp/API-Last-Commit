@@ -11,19 +11,23 @@ def try_solve(query):
     nums = list(map(int, re.findall(r'-?\d+', query)))
 
     if "sum even" in q or "add even" in q:
-        return str(sum(n for n in nums if n % 2 == 0))
+        result = sum(n for n in nums if n % 2 == 0)
+        return f"The sum of even numbers is {result}."
     if "sum odd" in q or "add odd" in q:
-        return str(sum(n for n in nums if n % 2 != 0))
+        result = sum(n for n in nums if n % 2 != 0)
+        return f"The sum of odd numbers is {result}."
     if "count even" in q:
-        return str(len([n for n in nums if n % 2 == 0]))
+        result = len([n for n in nums if n % 2 == 0])
+        return f"The count of even numbers is {result}."
     if "count odd" in q:
-        return str(len([n for n in nums if n % 2 != 0]))
+        result = len([n for n in nums if n % 2 != 0])
+        return f"The count of odd numbers is {result}."
     if "max" in q or "largest" in q or "greatest" in q:
-        return str(max(nums)) if nums else None
+        return f"The largest number is {max(nums)}." if nums else None
     if "min" in q or "smallest" in q:
-        return str(min(nums)) if nums else None
+        return f"The smallest number is {min(nums)}." if nums else None
     if "total" in q:
-        return str(sum(nums)) if nums else None
+        return f"The total is {sum(nums)}." if nums else None
 
     return None
 
