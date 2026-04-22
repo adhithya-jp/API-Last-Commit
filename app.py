@@ -24,7 +24,6 @@ def try_solve(query):
         return str(min(nums)) if nums else None
     if "total" in q:
         return str(sum(nums)) if nums else None
-
     return None
 
 @app.route("/", methods=["GET", "POST"])
@@ -41,9 +40,8 @@ def solve():
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
-        temperature=0,
         messages=[
-            {"role": "system", "content": "Return ONLY the answer. No explanation. For addition questions use format 'The sum is X.' For subtraction use 'The difference is X.' For multiplication use 'The product is X.' For division use 'The quotient is X.' For yes/no questions return YES or NO in caps. For extraction return just the extracted value. For number operations like sum/count/max/min return just the number."},
+            {"role": "system", "content": "You are a precise answer engine. Return only the final answer with no explanation, no extra words, no punctuation unless it is part of the answer. For numbers return just the number. For yes/no return YES or NO in caps. For text extraction return just the extracted text."},
             {"role": "user", "content": query}
         ]
     )
