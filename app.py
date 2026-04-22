@@ -15,6 +15,25 @@ def strip_to_answer(text):
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     return lines[-1] if lines else text
 
+def solve_math(query):
+    q = query.lower()
+
+    # Modular arithmetic: X^Y mod Z
+    m = re.search(r'(\d+)\s*[\^]\s*(\d+)\s*mod\s*10\^(\d+)', query, re.IGNORECASE)
+    if m:
+        base, exp, digits = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        result = pow(base, exp, 10**digits)
+        return str(result)
+
+    # Last N digits of X^Y
+    m = re.search(r'last\s*(\d+)\s*digits?\s*of\s*(\d+)\s*[\^]\s*(\d+)', q)
+    if m:
+        digits, base, exp = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        result = pow(base, exp, 10**digits)
+        return str(result)
+
+    return None
+
 def needs_reasoning(query):
     q = query.lower()
     return any(k in q for k in [
@@ -86,6 +105,12 @@ def solve():
     data  = request.get_json(silent=True) or {}
     query = str(data.get("query", ""))
 
+    # 1. Deterministic math solver (exact, instant)
+    result = solve_math(query)
+    if result:
+        return jsonify({"output": result}), 200
+
+    # 2. Two-step reasoning for complex rule/filter tasks
     if needs_reasoning(query):
         raw = two_step_call(query)
     else:
