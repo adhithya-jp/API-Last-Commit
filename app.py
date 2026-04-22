@@ -11,7 +11,6 @@ def strip_to_answer(text):
         r'^(the final (answer|result|output) is[:\s]*|therefore[,\s]*|so[,\s]*|output[:\s]*|answer[:\s]*)',
         '', text.strip(), flags=re.IGNORECASE
     ).strip()
-    # Only strip surrounding quotes, nothing else
     text = text.strip('"\'"\u201c\u201d')
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     return lines[-1] if lines else text
@@ -37,6 +36,7 @@ def solve():
                 "  - Apply ALL filter conditions\n"
                 "  - Return the FIRST match unless told otherwise\n"
                 "  - Use this sentence format for transaction results: '[Name] paid the amount of $[amount].'\n"
+                "For label-priority tasks: always trust [VERIFIED] over [UNVERIFIED] or [DISPUTED].\n"
                 "For formatting tasks: follow the exact format specified in the query.\n"
                 "Show all working clearly."
             )},
