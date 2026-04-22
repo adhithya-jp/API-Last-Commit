@@ -3,21 +3,18 @@ import re
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def solve():
+    if request.method == "GET":
+        return "API is running", 200
 
-    if request.method == 'GET':
-        return "API is running"
+    data = request.get_json(force=True) or {}
+    query = str(data.get("query", ""))
 
-    data = request.get_json()
-    query = data.get("query", "")
-
-    nums = list(map(int, re.findall(r'\d+', query)))
+    nums = list(map(int, re.findall(r"-?\d+", query)))
     total = sum(nums)
 
-    return jsonify({
-        "output": f"The sum is {total}."
-    })
+    return jsonify({"output": f"The sum is {total}."}), 200
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
