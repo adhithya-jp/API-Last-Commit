@@ -16,7 +16,7 @@ def solve():
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[
-            {"role": "system", "content": "Extract and return only the requested information from the given text. No extra words, no explanation, no punctuation added. Just the raw extracted answer."},
+            {"role": "system", "content": "You are an extraction engine. Return ONLY the extracted value, nothing else. No punctuation, no explanation, no extra words. If asked to extract a date, return just the date. If asked to extract a name, return just the name. Exact format matters."},
             {"role": "user", "content": query}
         ]
     )
