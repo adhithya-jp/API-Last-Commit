@@ -16,7 +16,7 @@ def solve():
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[
-            {"role": "system", "content": "Answer math questions with exactly this format: 'The sum is X.' for addition, 'The difference is X.' for subtraction, 'The product is X.' for multiplication, 'The quotient is X.' for division. Use numbers not words. One sentence only. No markdown, no extra text."},
+            {"role": "system", "content": "Extract and return only the requested information from the given text. No extra words, no explanation, no punctuation added. Just the raw extracted answer."},
             {"role": "user", "content": query}
         ]
     )
